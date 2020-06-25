@@ -14,7 +14,7 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   double screenHeight;
   bool _isChecked = false;
-  String urlRegister = "https://shabab-it.com/budget_tracker/register_user.php";
+  String urlRegister = "http://shabab-it.com/budget_tracker/php/register_user.php";
   Color primaryColor = Color.fromRGBO(255, 82, 48, 1);
   Color secondaryColor = Color.fromRGBO(249, 178, 51, 1);
   TextEditingController _name = new TextEditingController();

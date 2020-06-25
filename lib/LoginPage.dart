@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:budget_tracker/RegisterPage.dart';
+import 'package:budget_tracker/User.dart';
+import 'package:budget_tracker/MainPage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:toast/toast.dart';
 import 'package:progress_dialog/progress_dialog.dart';
+import 'package:http/http.dart' as http;
 
 void main() => runApp(LoginPage());
 
@@ -16,9 +19,10 @@ class _LoginPageState extends State<LoginPage> {
   double screenHeight;
   Color primaryColor = Color.fromRGBO(255, 82, 48, 1);
   Color secondaryColor = Color.fromRGBO(249, 178, 51, 1);
-  TextEditingController _email = new TextEditingController();
-  TextEditingController _password = new TextEditingController();
+  TextEditingController _emailEditingCtrl = new TextEditingController();
+  TextEditingController _passwordEditingCtrl = new TextEditingController();
   bool rememberMe = false;
+  String urlLogin = "http://shabab-it.com/budget_tracker/php/login_user.php";
 
   @override
   void initState() {
@@ -30,6 +34,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     screenHeight = MediaQuery.of(context).size.height;
+    print('Screen Height: $screenHeight');
 
     return WillPopScope(
       onWillPop: _onBackPressed,
@@ -40,12 +45,12 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                    color: primaryColor,
-                    border: Border.all(color: primaryColor)),
-              ),
+//              Container(
+//                width: double.infinity,
+//                decoration: BoxDecoration(
+//                    color: primaryColor,
+//                    border: Border.all(color: primaryColor)),
+//              ),
               Stack(
                 children: <Widget>[
                   background(context),
@@ -107,7 +112,7 @@ class _LoginPageState extends State<LoginPage> {
                     height: 20,
                   ),
                   TextFormField(
-                    controller: _email,
+                    controller: _emailEditingCtrl,
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
                         labelText: "Enter Email",
@@ -124,7 +129,7 @@ class _LoginPageState extends State<LoginPage> {
                     height: 15,
                   ),
                   TextFormField(
-                    controller: _password,
+                    controller: _passwordEditingCtrl,
                     decoration: InputDecoration(
                         labelText: "Enter Password",
                         fillColor: Colors.white,
@@ -170,7 +175,7 @@ class _LoginPageState extends State<LoginPage> {
                           "SIGN IN",
                           style: TextStyle(fontSize: 20.0, color: Colors.white),
                         ),
-                        onPressed: _test),
+                        onPressed: this._userLogin),
                   ),
                   SizedBox(
                     height: 15,
@@ -248,6 +253,60 @@ class _LoginPageState extends State<LoginPage> {
 
   void _test() {
     print("test");
+  }
+
+  void _userLogin() async {
+    ProgressDialog pr = new ProgressDialog(context,
+        type: ProgressDialogType.Normal, isDismissible: true, showLogs: true);
+    pr.style(
+        message: 'Please wait...',
+        borderRadius: 10.0,
+        backgroundColor: Colors.white,
+        progressWidget: CircularProgressIndicator(),
+        elevation: 10.0,
+        insetAnimCurve: Curves.easeInOut,
+        progress: 0.0,
+        maxProgress: 100.0,
+        progressTextStyle: TextStyle(
+            color: Colors.black, fontSize: 13.0, fontWeight: FontWeight.w400),
+        messageTextStyle: TextStyle(
+            color: Colors.black, fontSize: 19.0, fontWeight: FontWeight.w600));
+    pr.show();
+    String _email = _emailEditingCtrl.text;
+    String _password = _passwordEditingCtrl.text;
+
+    http.post(urlLogin, body: {
+      "email": _email,
+      "password": _password,
+    }).then((res) {
+      var string = res.body;
+      print(res.body);
+      List userdata = string.split(",");
+      if (userdata[0] == "success") {
+        User _user = new User(
+            name: userdata[1],
+            email: _email,
+            password: _password,
+            phoneNum: userdata[3],
+            datereg: userdata[4],
+            quantity: userdata[5],
+            credit: userdata[6]);
+        pr.dismiss();
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (BuildContext context) => MainPage(
+                      user: _user,
+                    )));
+      } else {
+        pr.dismiss();
+        Toast.show("Login Failed", context,
+            duration: Toast.LENGTH_LONG, gravity: Toast.BOTTOM);
+      }
+    }).catchError((err) {
+      print('Error: $err');
+      pr.dismiss();
+    });
   }
 
   void _forgotPassword() {
@@ -346,16 +405,16 @@ class _LoginPageState extends State<LoginPage> {
     String password = (prefs.getString("pass")) ?? '';
     if (email.length > 1) {
       setState(() {
-        _email.text = email;
-        _password.text = password;
+        _emailEditingCtrl.text = email;
+        _passwordEditingCtrl.text = password;
         rememberMe = true;
       });
     }
   }
 
   void savepref(bool value) async {
-    String email = _email.text;
-    String password = _password.text;
+    String email = _emailEditingCtrl.text;
+    String password = _passwordEditingCtrl.text;
     SharedPreferences prefs = await SharedPreferences.getInstance();
     if (value) {
       //save preference
@@ -368,8 +427,8 @@ class _LoginPageState extends State<LoginPage> {
       await prefs.setString("email", "");
       await prefs.setString("pass", "");
       setState(() {
-        _email.text = "";
-        _password.text = "";
+        _emailEditingCtrl.text = "";
+        _passwordEditingCtrl.text = "";
         rememberMe = false;
       });
       Toast.show("Email and Password removed", context,

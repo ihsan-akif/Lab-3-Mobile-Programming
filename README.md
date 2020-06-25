@@ -1,4 +1,4 @@
-# budget_tracker
+# Lab 3 Mobile Programming
 
 A new Flutter project.
 
